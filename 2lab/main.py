@@ -1,53 +1,50 @@
+def caesar_cipher(text, shift):
+    """Шифр Цезаря"""
+    result = []
+    for char in text:
+        if char.isalpha():
+            is_upper = char.isupper()
+            char = char.lower()
+            shifted = chr((ord(char) - ord('a') + shift) % 26 + ord('a'))
+            result.append(shifted.upper() if is_upper else shifted)
+        else:
+            result.append(char)
+    return ''.join(result)
 
-
-if __name__ == "__main__":
-    def process_encryption_chain(original_string, commands):
-    steps = [original_string]
+def process_encryption_chain(initial_text, commands):
+    """Обработка цепочки команд шифрования"""
+    steps = [initial_text]  
+    current_text = initial_text
     
-    current_string = original_string
-    
-    for command in commands.split():
+    for command in commands:
         try:
             if command.startswith('c'):
                 shift = int(command[1:])
-                current_string = caesar_cipher(current_string, shift)
-                steps.append(current_string)
+                current_text = caesar_cipher(current_text, shift)
                 
             elif command == 'r':
-                current_string = current_string[::-1]
-                steps.append(current_string)
+                current_text = current_text[::-1]
                 
             else:
-                raise ValueError(f"Неизвестная команда: {command}")
+                print(f"Неизвестная команда: {command}")
+                continue
                 
+            steps.append(current_text)
+            
         except Exception as e:
-            print(f"Ошибка при обработке команды '{command}': {e}")
+            print(f"Ошибка в команде '{command}': {e}")
             continue
     
-    return steps
+    return current_text, steps
 
-def caesar_cipher(text, shift):
-    result = []
-    
-    for char in text:
-        if char.isalpha():
-            base = ord('a') if char.islower() else ord('A')
-            shifted_char = chr((ord(char) - base + shift) % 26 + base)
-            result.append(shifted_char)
-        else:
-            result.append(char)
-    
-    return ''.join(result)
 
-if __name__ == "__main__":
-    commands = "c1 r c-1 r"
-    original_string = "abcd"
-    
-    steps = process_encryption_chain(original_string, commands)
-    
-    print("Все этапы преобразования:")
-    for i, step in enumerate(steps):
-        print(f"Шаг {i}: {step}")
-    
-    print(f"\nИсходная строка: {original_string}")
-    print(f"Результат: {steps[-1]}")
+initial_text = "abcd"
+commands = ["c1", "r", "c-1", "r"]
+
+result, steps = process_encryption_chain(initial_text, commands)
+
+print("Все этапы преобразования:")
+for i, step in enumerate(steps):
+    print(f"Шаг {i}: {step}")
+
+print(f"\nИтоговый результат: {result}")
