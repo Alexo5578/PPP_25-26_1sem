@@ -1,5 +1,4 @@
 def caesar_cipher(text, shift):
-    """Шифр Цезаря"""
     result = []
     for char in text:
         if char.isalpha():
