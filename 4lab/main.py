@@ -1,41 +1,126 @@
- class Money:
-    rates = {} 
-    base_curr = ""
-    
-    def __init__(self, amount, currency=None):
-        self.amount = amount
-        self.currency = currency if currency else Money.base_curr
-    
+ class CurrencyRates:
+    base_currency = "RUB"
+    rates = {}
+
+    @classmethod
+    def set_base(cls, base):
+        cls.base_currency = base
+
+    @classmethod
+    def add_rate(cls, currency, value):
+        cls.rates[currency] = value
+
+    @classmethod
+    def to_base(cls, amount, currency):
+        if currency == cls.base_currency:
+            return amount
+        if currency not in cls.rates:
+            raise ValueError(f"Неизвестная валюта: {currency}")
+        return amount * cls.rates[currency]
+
+class Money:
     def to_base(self):
-        if self.currency == Money.base_curr:
-            return self.amount
-        return self.amount * Money.rates.get(self.currency, 0)
-    
+        raise NotImplementedError
+
     def __str__(self):
-        base_val = self.to_base()
-        if self.currency == Money.base_curr:
+        raise NotImplementedError
+
+class CodeMoney(Money):
+    def __init__(self, amount, currency):
+        self.amount = amount
+        self.currency = currency
+
+    def to_base(self):
+        return CurrencyRates.to_base(self.amount, self.currency)
+
+    def __str__(self):
+        base = self.to_base()
+        if self.currency == CurrencyRates.base_currency:
             return f"{self.amount:.2f} {self.currency}"
-        return f"{self.amount:.2f} {self.currency} = {base_val:.2f} {Money.base_curr}"
+        return f"{self.amount:.2f} {self.currency} = {base:.2f} {CurrencyRates.base_currency}"
 
-Money.base_curr = "RUB"
-Money.rates = {"USD": 92.5, "EUR": 100.0}
+class JsonMoney(Money):
+    def __init__(self, data):
+        self.amount = data["amount"]
+        self.currency = data["currency"]
 
-sums = [
-    Money(1000, "RUB"),               
-    Money(15.5, "USD"),               
-    Money(200, "EUR"),                
-    Money(1000.50, "RUB"),            
-    Money(500)                        
-]
+    def to_base(self):
+        return CurrencyRates.to_base(self.amount, self.currency)
 
-print("Список всех сумм:")
-for s in sums:
-    print(f"  {s}")
+    def __str__(self):
+        base = self.to_base()
+        return f"{self.amount:.2f} {self.currency} = {base:.2f} {CurrencyRates.base_currency}"
 
-print(f"\nОбщая сумма: {sum(s.to_base() for s in sums):.2f} {Money.base_curr}")
+class LocalMoney(Money):
+    def __init__(self, text):
+        clean = text.replace(" ", "").replace("₽", "").replace(",", ".")
+        self.amount = float(clean)
+        self.currency = CurrencyRates.base_currency
 
-max_s = max(sums, key=lambda x: x.to_base())
-print(f"\nМаксимальная: {max_s.amount:.2f} {max_s.currency} = {max_s.to_base():.2f} {Money.base_curr}")
+    def to_base(self):
+        return self.amount
 
-min_s = min(sums, key=lambda x: x.to_base())
-print(f"Минимальная:  {min_s.amount:.2f} {min_s.currency} = {min_s.to_base():.2f} {Money.base_curr}") 
+    def __str__(self):
+        return f"{self.amount:.2f} {self.currency}"
+
+class DefaultMoney(Money):
+    def __init__(self, amount):
+        self.amount = amount
+        self.currency = CurrencyRates.base_currency
+
+    def to_base(self):
+        return self.amount
+
+    def __str__(self):
+        return f"{self.amount:.2f} {self.currency}"
+
+def total_sum(money_list):
+    return sum(m.to_base() for m in money_list)
+
+
+def find_max(money_list):
+    return max(money_list, key=lambda x: x.to_base())
+
+
+def find_min(money_list):
+    return min(money_list, key=lambda x: x.to_base())
+
+def main():
+    CurrencyRates.set_base("RUB")
+    CurrencyRates.add_rate("USD", 92.5)
+    CurrencyRates.add_rate("EUR", 100.0)
+    CurrencyRates.add_rate("CNY", 12.3)
+
+    money_list = []
+
+    try:
+        money_list.append(CodeMoney(1000, "RUB"))
+        money_list.append(CodeMoney(15.5, "USD"))
+        money_list.append(JsonMoney({"amount": 200, "currency": "EUR"}))
+        money_list.append(LocalMoney("1 000,50 ₽"))
+        money_list.append(DefaultMoney(500))
+    except ValueError as e:
+        print("Ошибка:", e)
+
+    command = "list" 
+
+    if command == "sum":
+        total = total_sum(money_list)
+        print(f"Total: {total:.2f} {CurrencyRates.base_currency}")
+
+    elif command == "max":
+        m = find_max(money_list)
+        print(f"Max: {m}")
+
+    elif command == "min":
+        m = find_min(money_list)
+        print(f"Min: {m}")
+    elif command == "list":
+        for m in money_list:
+            print(m)
+
+    else:
+        print("Неизвестная команда")
+
+if __name__ == "__main__":
+    main()
